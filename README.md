@@ -1,5 +1,5 @@
 # OakIslandBot
-A bot which responds to Oak Island r/Oak Island posts in the style of the Oak Island narrator (Robert Clotworthy).
+A bot which responds to Oak Island r/OakIsland posts in the style of the Oak Island narrator (Robert Clotworthy).
 
 For edits to the agent, please submit PR for the agent.txt file. 
 
