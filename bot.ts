@@ -6,6 +6,13 @@ import { getHasPosted, initDb, updateCompletedPost } from './database';
 
 dotenv.config();
 
+const triggerWords = [
+  "could it be",
+  "in situ",
+  "chappel vault",
+  "lot 5"
+];
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -22,29 +29,31 @@ console.log(`${process.env.REDDIT_USERNAME} is logged in`);
 
 const fetchLatestPost = async (subreddit: string) => {
   try {
-    const posts = await redditScan.getSubreddit(subreddit).getNew({ limit: 1 });
-    const latestPost = posts[0];
-    console.log('Latest Post:', latestPost.title);
-
-    const hasPosted = getHasPosted(latestPost.id);
-    if (hasPosted) {
-      console.log('Post already responded to');
-      return;
+    const posts = await redditScan.getSubreddit(subreddit).getNew({ limit: 20 });
+    //now run through all the posts searching for one that has "could it be" in the title or text
+    for (const post of posts) {
+      if (triggerWords.some(word => post.title.toLowerCase().includes(word) || post.selftext.toLowerCase().includes(word))) {
+        console.log('Found post:', post.title);
+        // check post ID against db:
+        const hasPosted = getHasPosted(post.id);
+        if (hasPosted) {
+          console.log('Post already responded to, stop checking');
+          return;
+        }
+        const fullText = post.title + " " + post.selftext;
+        return fetchAIResponse(fullText)
+          .then(response => {
+            console.log('AI Response:', response);
+            updateCompletedPost(post.id, response);
+            return post.reply(response);
+          })
+          .then(replyResult => {
+            console.log('Reply posted:', replyResult.id);
+          });
+      }
     }
 
-    console.log('Latest Post Body:', latestPost.selftext);
-    console.log('latest post id:', latestPost.id);
-    const fullText = latestPost.title + " " + latestPost.selftext;
-
-    return fetchAIResponse(fullText)
-      .then(response => {
-        console.log('AI Response:', response);
-        updateCompletedPost(latestPost.id, response);
-        return latestPost.reply(response);
-      })
-      .then(replyResult => {
-        console.log('Reply posted:', replyResult.id);
-      });
+    console.log("No post found");
 
   } catch (error) {
     console.error(error);
@@ -90,7 +99,7 @@ initDb();
 const startBot = async () => {
   while (true) {
     await fetchLatestPost('OakIsland');
-    await new Promise(resolve => setTimeout(resolve, 30 * 60 * 1000));
+    await new Promise(resolve => setTimeout(resolve, 60 * 60 * 1000));
   }
 };
 
