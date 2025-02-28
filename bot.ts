@@ -8,9 +8,11 @@ dotenv.config();
 
 const triggerWords = [
   "could it be",
+  "could it mean",
   "in situ",
   "chappel vault",
-  "lot 5"
+  "lot 5",
+  "William Phipps"
 ];
 
 const openai = new OpenAI({
